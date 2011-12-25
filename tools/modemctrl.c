@@ -345,19 +345,36 @@ void modem_response_net(struct ipc_client *client, struct ipc_message_info *resp
     }
 }
 
-void modem_response_handle(struct ipc_client *client, struct ipc_message_info *resp)
+void modem_response_boot(struct ipc_client *client, struct modem_io *resp)
 {
-    switch(resp->group)
+
+}
+
+void modem_response_rsd(struct ipc_client *client, struct modem_io *resp)
+{
+
+}
+
+void modem_response_handle(struct ipc_client *client, struct modem_io *resp)
+{
+
+//	printf("KB: Inside modem_response_handler\n");
+
+	switch(resp->cmd)
     {
-        case IPC_GROUP_NET:
-            modem_response_net(client, resp);
+        case IPC_GROUP_FM:
+        	modem_response_fm(client, resp);
         break;
-        case IPC_GROUP_PWR:
-            modem_response_pwr(client, resp);
+        case IPC_GROUP_RSD:
+            modem_response_rsd(client, resp);
         break;
-        case IPC_GROUP_SEC:
-            modem_response_sec(client, resp);
+        case IPC_GROUP_BOOT:
+            modem_response_boot(client, resp);
         break;
+        case IPC_GROUP_IPC:
+        modem_response_ipc(client, resp);
+    break;
+#if 0
         case IPC_GROUP_SMS:
             modem_response_sms(client, resp);
         break;
@@ -368,13 +385,15 @@ void modem_response_handle(struct ipc_client *client, struct ipc_message_info *r
             if(in_call)
                 modem_snd_no_mic_mute(client);
         break;
+#endif
     }
 }
 
 int modem_read_loop(struct ipc_client *client)
 {
-    struct ipc_message_info resp;
+    struct modem_io resp;
     int fd = client_fd;
+    printf("dpram fd = 0x%x\n", fd);
     int rc;
     fd_set fds;
 
@@ -440,15 +459,25 @@ int modem_start(struct ipc_client *client)
     int rc = -1;
 
 //    ipc_client_set_handlers(client, &ipc_default_handlers);
-    ipc_client_set_all_handlers_data(client, &client_fd);
+    rc = ipc_client_set_all_handlers_data(client, &client_fd);
+
+    if(rc < 0)
+        printf("[D] error in setting handlers_data\n");
 
     ipc_client_bootstrap_modem(client);
 
     usleep(300);
 
+    printf("[D] Opening modem_ctl\n");
+
     rc = ipc_client_open(client);
+
+    printf("[D] Addr of Client_fd = 0x%x, value of Client_fd = %d\n", &client_fd, client_fd);
+
     if(rc < 0)
         return -1;
+
+    printf("[D] Power on modem\n");
 
     rc = ipc_client_power_on(client);
     if(rc < 0)
@@ -553,7 +582,7 @@ int main(int argc, char *argv[])
         }
 
 modem_quit:
-    ipc_client_free(client_fmt);
+//    ipc_client_free(client_fmt);
 
     return 0;
 }

@@ -29,8 +29,8 @@ void ipc_client_log(struct ipc_client *client, const char *message, ...);
 
 struct ipc_ops {
     int (*bootstrap)(struct ipc_client *client);
-    int (*send)(struct ipc_client *client, struct ipc_message_info *);
-    int (*recv)(struct ipc_client *client, struct ipc_message_info *);
+    int (*send)(struct ipc_client *client, struct modem_io *);
+    int (*recv)(struct ipc_client *client, struct modem_io *);
 };
 
 struct ipc_handlers {

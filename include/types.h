@@ -30,6 +30,8 @@
 #include "sms.h"
 #include "pwr.h"
 #include "gprs.h"
+#include "fm_packet.h"
+#include "ipc_packet.h"
 
 /* AP -> Baseband */
 #define IPC_TYPE_EXEC                               0x01
@@ -43,6 +45,31 @@
 #define IPC_TYPE_RESP                               0x02
 #define IPC_TYPE_NOTI                               0x03
 
+/* Message groups for Jet*/
+#if defined(DEVICE_JET)
+#define IPC_GROUP_SIM                               0x02
+#define IPC_GROUP_PROTO                             0x03
+#define IPC_GROUP_TAPI                              0x04
+#define IPC_GROUP_FM                                0x06
+#define IPC_GROUP_SND                               0x09
+#define IPC_GROUP_VID                               0x0B
+#define IPC_GROUP_VIDCAP                            0x0A
+#define IPC_GROUP_BOOT                              0x0F
+#define IPC_GROUP_MULTI_DBG                         0x19
+#define IPC_GROUP_DIAG                              0x1A
+#define IPC_GROUP_MULTI_FIFO                        0x1E
+#define IPC_GROUP_RSD                               0x2E
+#define IPC_GROUP_NV                                0x31
+#define IPC_GROUP_LBS                               0x32
+#define IPC_GROUP_QMS                               0x33
+#define IPC_GROUP_DSM                               0x34
+#define IPC_GROUP_BT                                0x91
+#define IPC_GROUP_TM                                0x92
+#define IPC_GROUP_IPC                               0x93
+#define IPC_GROUP_RBM                               0x94
+#define IPC_GROUP_DM                                0x95
+#define IPC_GROUP_SSB                               0x96
+#else
 /* Message groups */
 #define IPC_GROUP_PWR                               0x01
 #define IPC_GROUP_CALL                              0x02
@@ -62,6 +89,7 @@
 #define IPC_GROUP_GPS                               0x11
 #define IPC_GROUP_SAP                               0x12
 #define IPC_GROUP_GEN                               0x80
+#endif
 
 /* Pb */
 #define IPC_PB_ACCESS                               0x0601

@@ -25,6 +25,8 @@
 #include "device/crespo/call.h"
 #elif defined(DEVICE_H1)
 #include "device/h1/call.h"
+#elif defined(DEVICE_JET)
+#include "device/jet/call.h"
 #endif
 
 /* Message types */

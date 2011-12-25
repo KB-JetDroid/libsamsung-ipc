@@ -126,6 +126,8 @@ int ipc_client_set_io_handlers(struct ipc_client *client,
 
 int ipc_client_set_all_handlers_data(struct ipc_client *client, void *data)
 {
+    printf("address of data = 0x%x, value of data = %d, client = 0x%x\n", (unsigned int)data, *(int *)data, (unsigned int)client);
+
     if(client == NULL)
         return -1;
     if(data == NULL)
@@ -178,6 +180,7 @@ int ipc_client_close(struct ipc_client *client)
 
 int ipc_client_power_on(struct ipc_client *client)
 {
+	return 0; //for jet
     if (client == NULL ||
         client->handlers == NULL ||
         client->handlers->open == NULL)
@@ -188,7 +191,8 @@ int ipc_client_power_on(struct ipc_client *client)
 
 int ipc_client_power_off(struct ipc_client *client)
 {
-    if (client == NULL ||
+	return 0; //for jet
+	if (client == NULL ||
         client->handlers == NULL ||
         client->handlers->open == NULL)
         return -1;
@@ -196,7 +200,7 @@ int ipc_client_power_off(struct ipc_client *client)
     return client->handlers->power_off(client->handlers->power_off_data);
 }
 
-int _ipc_client_send(struct ipc_client *client, struct ipc_message_info *request)
+int _ipc_client_send(struct ipc_client *client, struct modem_io *request)
 {
     if (client == NULL ||
         client->ops == NULL ||
@@ -233,7 +237,7 @@ void ipc_client_send(struct ipc_client *client, const unsigned short command, co
     _ipc_client_send(client, &request);
 }
 
-int ipc_client_recv(struct ipc_client *client, struct ipc_message_info *response)
+int ipc_client_recv(struct ipc_client *client, struct modem_io *response)
 {
     if (client == NULL ||
         client->ops == NULL ||

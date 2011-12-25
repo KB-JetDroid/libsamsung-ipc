@@ -28,6 +28,7 @@
 
 #define IPC_CLIENT_TYPE_FMT      0
 #define IPC_CLIENT_TYPE_RFS      1
+#define IPC_CLIENT_TYPE_PACKET   2 //For Jet
 
 #define IPC_COMMAND(f)  ((f->group << 8) | f->index)
 #define IPC_GROUP(m)    (m >> 8)
@@ -40,6 +41,29 @@ struct ipc_header {
 } __attribute__((__packed__));
 
 struct ipc_message_info {
+    unsigned char mseq;
+    unsigned char aseq;
+    unsigned char group;
+    unsigned char index;
+    unsigned char type;
+    unsigned int length;
+    unsigned char *data;
+};
+
+struct ipc_packet_header {
+	uint32_t magic; //filled by modemctl
+	uint32_t cmd;
+	uint32_t datasize;
+};
+
+struct modem_io {
+	uint32_t magic; //filled by modemctl
+	uint32_t cmd;
+	uint32_t datasize;
+	void *data;
+};
+
+struct ipc_packet {
     unsigned char mseq;
     unsigned char aseq;
     unsigned char group;
@@ -76,11 +100,12 @@ int ipc_client_close(struct ipc_client *client);
 int ipc_client_power_on(struct ipc_client *client);
 int ipc_client_power_off(struct ipc_client *client);
 
-int ipc_client_recv(struct ipc_client *client, struct ipc_message_info *response);
+int ipc_client_recv(struct ipc_client *client, struct modem_io *response);
 
 /* Convenience functions for ipc_send */
 void ipc_client_send(struct ipc_client *client, const unsigned short command, const char type, unsigned char *data,
                      const int length, unsigned char mseq);
+int _ipc_client_send(struct ipc_client *client, struct modem_io *request);
 void ipc_client_send_get(struct ipc_client *client, const unsigned short command, unsigned char mseq);
 void ipc_client_send_exec(struct ipc_client *client, const unsigned short command, unsigned char mseq);
 
@@ -91,6 +116,10 @@ const char *ipc_request_type_to_str(int type);
 void ipc_hex_dump(struct ipc_client *client, void *data, int size);
 void *ipc_mtd_read(struct ipc_client *client, char *mtd_name, int size, int block_size);
 void *ipc_file_read(struct ipc_client *client, char *file_name, int size, int block_size);
+
+void modem_response_fm(struct ipc_client *client, struct modem_io *resp);
+
+void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
 
 #endif
 

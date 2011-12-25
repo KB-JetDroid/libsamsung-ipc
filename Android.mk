@@ -15,7 +15,9 @@ samsung-ipc_files := \
 	samsung-ipc/misc.c \
 	samsung-ipc/net.c \
 	samsung-ipc/sec.c \
-	samsung-ipc/device/$(TARGET_DEVICE)/$(TARGET_DEVICE)_ipc.c
+	samsung-ipc/fm_packet.c \
+	samsung-ipc/ipc_packet.c \
+	samsung-ipc/device/jet/jet_ipc.c
 
 ifeq ($(TARGET_DEVICE),crespo)
 	device_files := samsung-ipc/device/$(TARGET_DEVICE)/$(TARGET_DEVICE)_nv_data.c
@@ -26,6 +28,8 @@ endif
 
 ifeq ($(TARGET_DEVICE),h1)
 	LOCAL_CFLAGS += -DDEVICE_H1
+else
+	LOCAL_CFLAGS += -DDEVICE_JET	
 endif
 
 ifeq ($(DEBUG),true)
@@ -50,12 +54,16 @@ LOCAL_MODULE_TAGS := optional
 
 modemctrl_files := tools/modemctrl.c
 
+
 ifeq ($(TARGET_DEVICE),crespo)
 	LOCAL_CFLAGS += -DDEVICE_CRESPO
 endif
 ifeq ($(TARGET_DEVICE),h1)
 	LOCAL_CFLAGS += -DDEVICE_H1
+else
+	LOCAL_CFLAGS += -DDEVICE_JET	
 endif
+
 
 LOCAL_SRC_FILES := $(modemctrl_files)
 
