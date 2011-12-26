@@ -22,14 +22,7 @@
 #define __DEVICE_JET_IPC_H__
 
 #define MAX_SIGNLE_FRAME_DATA 	0xFF4
-#if 0
-struct ipcPacketHeader {
-	unsigned short ipcPacketType;
-	unsigned int size;
-	unsigned int packetLen;
-	unsigned int reqCounter;
-};
-#endif
+
 struct ipcPacketHeader {
 	unsigned char reserved; //probably dummy
 	unsigned char ipcPacketType;

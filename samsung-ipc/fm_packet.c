@@ -17,6 +17,19 @@
  * along with libsamsung-ipc.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * TODO: Optimize this file
+ * 		 Implement following functions:
+ * 		 	FmMoveFile
+ * 		 	FmGetFileAttrFile
+ * 		 	FmFGetFileAttrFile
+ * 		 	FmSetFileAttrFile
+ * 		 	FmTruncateFile
+ * 		 	FmReadDirFile
+ * 		 	FmRemoveDirFile
+ * 		 	FmGetQuotaSpaceFile
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -458,7 +471,6 @@ int FmGetQuotaSpaceFile(struct fmRequest *rx_packet, struct fmResponse *tx_packe
 
 int get_request_packet(void *data, struct fmRequest *rx_packet)
 {
-//	printf("KB: Inside get_request_packet\n");
 	struct fmPacketHeader *header;
 
 	header = (struct fmPacketHeader *)data;
@@ -476,7 +488,6 @@ int get_request_packet(void *data, struct fmRequest *rx_packet)
 
 void modem_response_fm(struct ipc_client *client, struct modem_io *resp)
 {
-//	printf("KB: Inside modem_response_fm\n");
 	int retval;
 	struct fmRequest rx_packet;
 	struct fmResponse tx_packet;
@@ -516,16 +527,12 @@ void modem_response_fm(struct ipc_client *client, struct modem_io *resp)
 
 	request.data = frame;
 
-//	printf("KB: Inside modem_response_fm before send\n");
-
 	_ipc_client_send(client, &request);
-//	printf("KB: Inside modem_response_fm after send\n");
 
     if(tx_packet.respBuf != NULL)
         free(tx_packet.respBuf);
 
     if(frame != NULL)
         free(frame);
-//	printf("KB: Inside modem_response_fm leaving\n");
 
 }

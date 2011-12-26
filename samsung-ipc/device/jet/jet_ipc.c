@@ -2,7 +2,8 @@
  * This file is part of libsamsung-ipc.
  *
  * Copyright (C) 2010-2011 Joerie de Gram <j.de.gram@gmail.com>
- * 				 2011 KB <kbjetdroid@gmail.com>
+ *
+ * Modified for Jet - KB <kbjetdroid@gmail.com>
  *
  * libsamsung-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,13 +98,9 @@ int jet_ipc_open(void *data, unsigned int size, void *io_data)
 
     fd = *((int *) io_data);
 
-    printf("dpram fd = 0x%x\n", fd);
-    printf("dpram io_data = 0x%x\n", (unsigned int)io_data);
-
     fd = open(DPRAM_TTY, O_RDWR);
 
     printf("dpram fd = 0x%x\n", fd);
-    printf("dpram io_data = 0x%x\n", (unsigned int)io_data);
 
     if(fd < 0) {
         return 1;
@@ -164,14 +161,13 @@ int jet_ipc_power_off(void *data)
 
 int send_packet(struct ipc_client *client, struct modem_io *request)
 {
-//	printf("KB: Entering jet_ipc_send\n");
 	int retval;
     struct ipc_packet_header *ipc;
     unsigned char *frame;
     unsigned char *payload;
     int frame_length;
 
-    /* Frame length: HDLC/IPC header + payload length + HDLC flags (2) */
+    /* Frame length: IPC header + payload length */
     frame_length = (sizeof(*ipc) + request->datasize);
 
     frame = (unsigned char*)malloc(frame_length);
@@ -181,21 +177,15 @@ int send_packet(struct ipc_client *client, struct modem_io *request)
 
     ipc->magic = request->magic;
     ipc->cmd = request->cmd;
-    ipc->datasize = request->datasize; //(sizeof(*hdlc) + request->length);
-//	printf("KB: Inside get_request_packet\n");
+    ipc->datasize = request->datasize;
 
     /* IPC payload */
     payload = (frame + sizeof(*ipc));
     memcpy(payload, request->data, request->datasize);
 
-//	printf("KB: Inside jet_ipc_send before write\n");
-
 	retval = client->handlers->write(frame, frame_length, client->handlers->write_data);
 
-//	printf("KB: Inside jet_ipc_send written bytes = %d\n", retval);
-
     free(frame);
-//	printf("KB: Inside jet_ipc_send leaving\n");
 
     return 0;
 }
@@ -248,7 +238,6 @@ int jet_ipc_send(struct ipc_client *client, struct modem_io *request)
 	}
 	else
 	{
-//		printf("KB: packet to send is smaller than 0x1000\n");
 		send_packet(client, request);
 	}
 
@@ -269,38 +258,26 @@ int jet_ipc_recv(struct ipc_client *client, struct modem_io *response)
 
     ipc = (struct ipc_packet_header *)buf;
 
-
-//    hexdump(buf, sizeof(buf));
-
-#if 1
     if(num_read == sizeof(buf) && ipc->magic == 0xCAFECAFE) {
 
         frame_length = ipc->datasize;
-        left = frame_length; //(*frame_length - 3 + 1);
+        left = frame_length;
 
         data = (unsigned char*)malloc(left);
         num_read = client->handlers->read((void*)data, left, client->handlers->read_data);
 
-        if(num_read == left) {// && data[left-1] == FRAME_END) {
-//            ipc = (struct ipc_header*)data;
+        if(num_read == left) {
             response->magic = ipc->magic;
             response->cmd = ipc->cmd;
             response->datasize = ipc->datasize;
-//        	response->length = left; //(ipc->length - sizeof(*ipc));
 
             response->data = (unsigned char*)malloc(left);
             memcpy(response->data, data , response->datasize);
 
-//            ipc_client_log(client, "received %s %s\n",
-//                    ipc_command_type_to_str(IPC_COMMAND(response)),
-//                    ipc_response_type_to_str(response->type));
-
-//            hexdump(response->data, (num_read < 0x30 ? num_read : 0x30));
-
             return 0;
         }
     }
-#endif
+
     return 0;
 }
 
@@ -348,5 +325,3 @@ struct ipc_ops ipc_ops = {
     .recv = jet_ipc_recv,
     .bootstrap = jet_modem_bootstrap,
 };
-
-// vim:ts=4:sw=4:expandtab

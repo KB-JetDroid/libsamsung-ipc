@@ -4,6 +4,8 @@
  * Copyright (C) 2010-2011 Joerie de Gram <j.de.gram@gmail.com>
  *               2011 Simon Busch <morphis@gravedo.de>
  *
+ * Modified for Jet - KB <kbjetdroid@gmail.com>
+ *
  * libsamsung-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -126,8 +128,6 @@ int ipc_client_set_io_handlers(struct ipc_client *client,
 
 int ipc_client_set_all_handlers_data(struct ipc_client *client, void *data)
 {
-    printf("address of data = 0x%x, value of data = %d, client = 0x%x\n", (unsigned int)data, *(int *)data, (unsigned int)client);
-
     if(client == NULL)
         return -1;
     if(data == NULL)

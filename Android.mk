@@ -1,3 +1,5 @@
+# Source file paths are hardcoded since Jet's platform build system is not set
+
 BUILD_IPC-MODEMCTRL := true
 DEBUG := true
 
