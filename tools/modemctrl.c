@@ -4,6 +4,8 @@
  * Copyright (C) 2010-2011 Joerie de Gram <j.de.gram@gmail.com>
  *               2011 Simon Busch <morphis@gravedo.de>
  *
+ * Modified for Jet - KB <kbjetdroid@gmail.com>
+ *
  * libsamsung-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -582,7 +584,7 @@ int main(int argc, char *argv[])
         }
 
 modem_quit:
-//    ipc_client_free(client_fmt);
+    ipc_client_free(client_fmt);
 
     return 0;
 }
