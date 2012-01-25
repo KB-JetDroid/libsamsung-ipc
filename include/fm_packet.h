@@ -18,8 +18,39 @@
  *
  */
 
-#ifndef __DEVICE_JET_FM_H__
-#define __DEVICE_JET_FM_H__
+#ifndef __FM_H__
+#define __FM_H__
+
+#include <radio.h>
+
+/*
+ * Declarations copied from Dolphin headers
+ */
+
+/* File Manager */
+#define FM_FILENAME_LEN_MAX						236
+#define FM_FILEPATH_LEN_MAX						256
+
+typedef unsigned char		UCHAR; /* SD_INT */
+typedef unsigned short		USHORT;
+typedef unsigned int		UINT;
+typedef unsigned long		ULONG;
+
+/* Machine independence */
+typedef signed   char		INT8;
+typedef unsigned char		UINT8;
+typedef signed short				INT16;
+typedef unsigned short		UINT16;
+
+#ifndef ADDR
+typedef unsigned int		ADDR;
+#endif // ADDR
+
+/* Machine independence */
+typedef  long int				INT32;
+typedef unsigned long		UINT32;
+typedef long	long			INT64;
+typedef unsigned long long	UINT64;
 
 //PACKETTYPE 0x6 FmPacket
 struct fmPacketHeader {
@@ -53,7 +84,140 @@ struct fmArgs {
 	unsigned int origin;
 };
 
-//fmPacketType
+/*
+ * Access Modes
+ */
+#define FM_CREATE				0x0001
+#define FM_READ					0x0002
+#define FM_WRITE				0x0004
+#define FM_TRUNCATE				0x0008
+#define FM_APPEND				0x0010
+#define FM_NOSHARE				0x0020
+#define FM_DIRECTIO				0x0040	// this mode does not use write buffer. so slow
+#define FM_CONCRETE_WRITE		0x0080	// this mode use backup writing up to  FM_CONCRETE_WRITE_BUFFER_MAX
+										// this mode is 2x more times slower than normal writing
+										// but it garantees atomic writing via logging
+#define FM_NOUPDATE_TIME 		0x0100   // if this flag is on, directory entry update for last modified time will not occurs.
+										// this can increase file system endurance
+
+/**
+ *  	  DirectoryEntry Type
+ */
+typedef enum
+{
+	FM_INVALID_TYPE =0x0000, 		 /**FM_INVALID_TYPE*/
+	FM_FILE_TYPE = 0x0001,			 /**FM_FILE_TYPE*/
+	FM_DIR_TYPE = 0x0002,			 /**FM_DIR_TYPE*/	// same as FM_ATTRIBUTE_DIR
+	FM_UNKNOWN_TYPE = 0x0003,		  /**FM_UNKNOWN_TYPE*/   // Sent from Qualcomm side
+	FM_TYPE_MAX = 0xFF000000		// for enumeration type size
+} FmEntryType;
+
+/**
+ * file system type
+ */
+typedef enum
+{
+	FM_FS_TFS2 = 0,
+	FM_FS_TFS3 = 1,
+	FM_FS_TFS4 = 2,	// MMC, TFS4
+	FM_FS_EFS2 = 3,
+	FM_FS_LFS = 4,
+	FM_FS_RFS = 5,			// Ram File System
+	FM_FS_REMOTE =6,
+	FM_FS_WIN32 = 7,
+	FM_FS_TCCFS =8,
+	FM_FS_MTEKFS=9,
+	FM_FS_MAX =10
+} FmFsType;
+
+typedef struct
+{
+	int		year; 	/**<Year (1900[1900_BASE] or 1970[1970_BASE] ~ 2030)*/
+	int		month;	/**<Month (1-12)*/
+	int		day;	/**<Day (1-31)*/
+	int		hour;	/**<Hour (1-12)*/
+	int		minute; 	/**<Minute (1-60)*/
+	int		second;	/**<Second (1-60)*/
+} TmDateTime;
+
+typedef struct
+{
+	unsigned long		oldFileSize;		// for backward compatibilty with previous PC tools
+	unsigned long*		startAddr;			/** Only used at LFS*/
+	unsigned long		attribute;			/** file attribute like directory or file, hidden, readonly, system, ...	*/
+	int			iVol;				/** positioned volume*/
+	TmDateTime	dt;					/** Creation date/time*/
+	unsigned long		oldAllocatedSize;	// for backward compatibilty with previous PC tools
+	TmDateTime	stModifiedDataTime;	/** DON NOT USE THIS FIELD YET!!!*/
+	unsigned long long		u64EntryUniqID;		/** uniq ID for file or directory, data cluster number + ctime mtime*/
+	unsigned long		uReservedField;		/** DON NOT USE THIS FIELD YET!!!*/
+	unsigned long long/*UINT64*/	fileSize;			/** File Size in bytes */
+	unsigned long long/*UINT64*/	allocatedSize;	/** real allocated size of file & directory in sub System
+									*Note: allocated size for sub directories & sub files are not included
+										only allocation size for directory itself!!!
+									*/
+} FmFileAttribute;
+
+/**
+  * @brief		These are basic structures for Directory Attribute
+  */
+typedef struct
+{
+	FmEntryType	type;					/** File or Directory*/
+	ULONG		oldFileSize;			// for backward compatibilty with previous PC tools
+	ULONG		attribute;				/** Attribute*/
+	TmDateTime	dt;						/** Creation date/time*/
+	char		szDummy[FM_FILEPATH_LEN_MAX];	// for backward compatibility with previous PC tools
+	ULONG		oldAllocatedSize;		// for backward compatibilty with previous PC tools
+	TmDateTime	stModifiedDataTime;	/** DON NOT USE THIS FIELD YET!!!*/
+	UINT64		u64EntryUniqID;		/** uniq ID for file or directory, data cluster number + ctime mtime*/
+	ULONG /*UINT64*/fileSize;			/** File size if entry is file. meaningless for directory entry */
+	ULONG /*UINT64*/allocatedSize;		/** real allocated size of file or directory in Sub System
+										 *Note: allocated size for sub directories & sub files are not included
+										  only allocation size for directory itself!!!*/
+	char		szName[FM_FILENAME_LEN_MAX];	/** File name*/
+	ULONG		uReservedField;		/** DON NOT USE THIS FIELD YET!!!*/
+
+} FmDirEntry;
+
+/**
+  * @brief		These are basic structures for VolumeStat
+  */
+typedef struct
+{
+	ULONG		availableSizeDummy;	/** Dummy for compatibility with  legacy facotry softwrare*/
+	ULONG		allocatedSizeDummy;	/** Dummy for compatibility with  legacy facotry softwrare*/
+	FmFsType	fsType;					/** volume type such as FM_FSTYPE_FIXED, FM_FSTYPE_REMOVABLE...*/
+	UINT64		availableSize;			/** available size */
+	UINT64		allocatedSize;			/** actual usage in File Syste*/
+} FmVolumeStat;
+
+/**
+  * @brief		These are basic structures for QuotaStat
+  */
+typedef struct
+{
+	ULONG			availableSizeDummy;	/**  Dummy for compatibility with  legacy facotry softwrare*/
+	ULONG			allocatedSizeDummy;	/** Dummy for compatibility with  legacy facotry softwrare	*/
+	ULONG			reservedSizeDummy;	/** Dummy for compatibility with  legacy facotry softwrare		*/
+	ULONG			diskSizeDummy;			/** Dummy for compatibility with  legacy facotry softwrare	 */
+	UINT64			availableSize;			/** available size means Reserved area plus remaining Shared area*/
+	UINT64			allocatedSize;			/** actual usage in File System for registered Quota entry*/
+	UINT64			reservedSize;			/** if requested path is not registered. it will be 0*/
+	UINT64			diskSize;				/** fixed size of Quota Area in TFS. This value is a practical meaning as disk size to user. */
+	UINT32			clusterSize;				/** disk Cluster Size. */
+} FmQuotaStat;
+
+typedef struct
+{
+	char pathname[FM_FILEPATH_LEN_MAX];		// null-terminated pathname
+	FmEntryType entryType;					// File or Directory
+} FmOpenEntry;
+
+
+/**
+  * @brief		These are file operations requested by CP
+  */
 #define FM_OPENFILE 		0
 #define FM_CLOSEFILE 		1
 #define FM_CREATEFILE 		2
@@ -100,5 +264,6 @@ int FmRemoveDirFile(struct fmRequest *, struct fmResponse *);
 int FmGetQuotaSpaceFile(struct fmRequest *, struct fmResponse *);
 //int FmInvalidFile(unsigned int mode, const char *fileName);
 
+int modem_response_fm(struct ipc_client *client, struct modem_io *resp);
 
 #endif

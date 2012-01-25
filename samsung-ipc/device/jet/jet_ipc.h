@@ -20,8 +20,8 @@
  *
  */
  
- #ifndef _H1_IPC_H_
- #define _H1_IPC_H_
+#ifndef _JET_IPC_H_
+#define _JET_IPC_H_
 
 #include <radio.h>
 
@@ -55,6 +55,4 @@ struct multiPacketHeader {
 
 
 #endif
-
-// vim:ts=4:sw=4:expandtab
 

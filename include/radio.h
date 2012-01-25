@@ -52,7 +52,8 @@ struct ipc_message_info {
     unsigned char *data;
 };
 
-struct ipc_packet_header {
+struct fifoPacketHeader
+{
 	uint32_t magic; //filled by modemctl
 	uint32_t cmd;
 	uint32_t datasize;
@@ -97,6 +98,7 @@ int ipc_client_set_io_handlers(struct ipc_client *client,
 int ipc_client_set_all_handlers_data(struct ipc_client *client, void *data);
 
 int ipc_client_bootstrap_modem(struct ipc_client *client);
+int ipc_client_modem_operations(struct ipc_client *client, void *data, unsigned int cmd);
 int ipc_client_open(struct ipc_client *client);
 int ipc_client_close(struct ipc_client *client);
 int ipc_client_power_on(struct ipc_client *client);
@@ -118,10 +120,6 @@ const char *ipc_request_type_to_str(int type);
 void ipc_hex_dump(struct ipc_client *client, void *data, int size);
 void *ipc_mtd_read(struct ipc_client *client, char *mtd_name, int size, int block_size);
 void *ipc_file_read(struct ipc_client *client, char *file_name, int size, int block_size);
-
-void modem_response_fm(struct ipc_client *client, struct modem_io *resp);
-
-void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
 
 #endif
 

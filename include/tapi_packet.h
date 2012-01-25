@@ -1,9 +1,7 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2011-2012 KB <kbjetdroid@gmail.com>
- *
- * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
+ * Copyright (C) 2011 KB <kbjetdroid@gmail.com>
  *
  * libsamsung-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,31 +18,30 @@
  *
  */
 
-#ifndef __IPC_H__
-#define __IPC_H__
+#ifndef __TAPI_H__
+#define __TAPI_H__
 
-struct ipcPacketHeader {
-	unsigned char reserved; //probably dummy
-	unsigned char ipcPacketType;
+#define TAPI_TYPE_CALL 		0 //53 subtypes
+#define TAPI_TYPE_NETTEXT 	1 //around 10 subtypes
+#define TAPI_TYPE_NETWORK 	2 //23 subtypes
+#define TAPI_TYPE_SS 		3 //48 subtypes
+#define TAPI_TYPE_AT 		4 //34 subtypes
+#define TAPI_TYPE_DMH 		5 //n subtypes, called API_IDs (must be nonzero)
+#define TAPI_TYPE_CONFIG 	6 //n subtypes, called API_IDs (must be nonzero)
+
+struct tapiPacketHeader {
+	unsigned short type;
+	unsigned short subtype;
+	unsigned int buflen;
 } __attribute__((__packed__));
 
-struct ipcNvPacket {
-	struct ipcPacketHeader header;
-	unsigned int size;
-} __attribute__((__packed__));
-
-struct ipcPMICPacket {
-	struct ipcPacketHeader header;
-	unsigned int unk1;
-	unsigned int unk2;
-	unsigned int value;
-} __attribute__((__packed__));
-
-struct ipcRequest {
-	struct ipcPacketHeader header;
+struct tapiRequest {
+	struct tapiPacketHeader header;
 	unsigned char *respBuf;
 } __attribute__((__packed__));
 
-void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
+void modem_response_tapi(struct ipc_client *client, struct modem_io *resp);
+
+void modem_response_tapi_init(struct ipc_client *client, struct modem_io *resp);
 
 #endif

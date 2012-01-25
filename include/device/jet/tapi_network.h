@@ -1,7 +1,7 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2011-2012 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2012 KB <kbjetdroid@gmail.com>
  *
  * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
@@ -20,31 +20,11 @@
  *
  */
 
-#ifndef __IPC_H__
-#define __IPC_H__
+#ifndef __DEVICE_JET_NETWORK_H__
+#define __DEVICE_JET_NETWORK_H__
 
-struct ipcPacketHeader {
-	unsigned char reserved; //probably dummy
-	unsigned char ipcPacketType;
-} __attribute__((__packed__));
-
-struct ipcNvPacket {
-	struct ipcPacketHeader header;
-	unsigned int size;
-} __attribute__((__packed__));
-
-struct ipcPMICPacket {
-	struct ipcPacketHeader header;
-	unsigned int unk1;
-	unsigned int unk2;
-	unsigned int value;
-} __attribute__((__packed__));
-
-struct ipcRequest {
-	struct ipcPacketHeader header;
-	unsigned char *respBuf;
-} __attribute__((__packed__));
-
-void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
+/**
+ * All the TAPI Network context structures specific to Jet will be defined here
+ */
 
 #endif

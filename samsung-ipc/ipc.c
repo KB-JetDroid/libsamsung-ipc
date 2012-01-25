@@ -153,6 +153,16 @@ int ipc_client_bootstrap_modem(struct ipc_client *client)
     return client->ops->bootstrap(client);
 }
 
+int ipc_client_modem_operations(struct ipc_client *client, void *data, unsigned int cmd)
+{
+    if (client == NULL ||
+        client->ops == NULL ||
+        client->ops->modem_operations == NULL)
+        return -1;
+
+    return client->ops->modem_operations(client, data, cmd);
+}
+
 int ipc_client_open(struct ipc_client *client)
 {
     int type;

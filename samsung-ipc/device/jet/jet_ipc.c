@@ -24,7 +24,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "jet_modem_ctl.h"
+#include <radio.h>
+
 #include "ipc_private.h"
 #include "jet_ipc.h"
 
@@ -62,6 +63,9 @@ int jet_modem_bootstrap(struct ipc_client *client)
 	int rc = 0;
 
     int dpram_fd = -1;
+
+
+	int fd, retval;
 
     printf("jet_ipc_bootstrap: enter\n");
 
@@ -162,24 +166,24 @@ int jet_ipc_power_off(void *data)
 int send_packet(struct ipc_client *client, struct modem_io *request)
 {
 	int retval;
-    struct ipc_packet_header *ipc;
+    struct fifoPacketHeader *ipc;
     unsigned char *frame;
     unsigned char *payload;
     int frame_length;
 
-    /* Frame length: IPC header + payload length */
+    /* Frame length: FIFO header + payload length */
     frame_length = (sizeof(*ipc) + request->datasize);
 
     frame = (unsigned char*)malloc(frame_length);
 
-    /* IPC header */
-    ipc = (struct ipc_packet_header*)(frame);
+    /* FIFO header */
+    ipc = (struct fifoPacketHeader*)(frame);
 
     ipc->magic = request->magic;
     ipc->cmd = request->cmd;
     ipc->datasize = request->datasize;
 
-    /* IPC payload */
+    /* FIFO payload */
     payload = (frame + sizeof(*ipc));
     memcpy(payload, request->data, request->datasize);
 
@@ -201,7 +205,7 @@ int jet_ipc_send(struct ipc_client *client, struct modem_io *request)
 		printf("KB: packet to send is larger than 0x1000\n");
 
 		multi_request.magic = 0xCAFECAFE;
-		multi_request.cmd = IPC_GROUP_MULTI_FIFO;
+		multi_request.cmd = FIFO_PKT_FIFO_INTERNAL;
 		multi_request.datasize = 0x0C;
 
 		multiHeader = (struct multiPacketHeader *)malloc(sizeof(struct multiPacketHeader));
@@ -249,14 +253,14 @@ int jet_ipc_recv(struct ipc_client *client, struct modem_io *response)
     unsigned char buf[SIZ_PACKET_HEADER];
     unsigned char *data;
     unsigned short *frame_length;
-    struct ipc_packet_header *ipc;
+    struct fifoPacketHeader *ipc;
     struct modem_io modem_packet;
     int num_read;
     int left;
 
     num_read = client->handlers->read((void*)buf, sizeof(buf), client->handlers->read_data);
 
-    ipc = (struct ipc_packet_header *)buf;
+    ipc = (struct fifoPacketHeader *)buf;
 
     if(num_read == sizeof(buf) && ipc->magic == 0xCAFECAFE) {
 
@@ -311,6 +315,19 @@ int jet_ipc_write(void *data, unsigned int size, void *io_data)
     return write(fd, data, size);
 }
 
+int jet_modem_operations(struct ipc_client *client, void *data, unsigned int cmd)
+{
+    int fd = -1;
+
+    fd = *((int *)client->handlers->write_data);
+
+    if(fd < 0)
+        return -1;
+    printf("KB: modem_operations ioctl cmd = 0x%x\n", cmd);
+
+    return ioctl(fd, cmd, data);
+}
+
 struct ipc_handlers ipc_default_handlers = {
     .open = jet_ipc_open,
     .close = jet_ipc_close,
@@ -324,4 +341,5 @@ struct ipc_ops ipc_ops = {
     .send = jet_ipc_send,
     .recv = jet_ipc_recv,
     .bootstrap = jet_modem_bootstrap,
+    .modem_operations = jet_modem_operations,
 };

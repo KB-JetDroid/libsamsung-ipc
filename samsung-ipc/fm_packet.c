@@ -1,7 +1,9 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2011 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2011-2012 KB <kbjetdroid@gmail.com>
+ *
+ * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
  * libsamsung-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +21,7 @@
 
 /*
  * TODO: Optimize this file
- * 		 Implement following functions:
+ * 		 Implement following functions properly:
  * 		 	FmMoveFile
  * 		 	FmGetFileAttrFile
  * 		 	FmFGetFileAttrFile
@@ -44,6 +46,7 @@
 #include <pthread.h>
 #include <getopt.h>
 
+#include <fm_packet.h>
 #include <radio.h>
 #include <dirent.h>
 #include <errno.h>
@@ -54,6 +57,9 @@ unsigned int dirArray[MAX_OPEN_DIRS];
 unsigned int dirIndex = 1;
 
 char *mochaRoot = "/KFAT0";
+
+int lastOpen = 0;
+int lastFile = 0;
 
 int (*fileOps[MAX_FILE_OPS])(struct fmRequest *, struct fmResponse *) =
 {
@@ -85,14 +91,36 @@ int FmOpenFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 	int retval = 0;
 	char *fName;
 	int mode;
+	unsigned int flags = O_RDONLY;
 
 	mode = *(int *)(rx_packet->reqBuf);
 	fName = (char *)malloc(sizeof(*mochaRoot) + strlen((rx_packet->reqBuf) + sizeof(mode)));
 	strcpy(fName, mochaRoot);
 	strcat(fName, (const char *)(rx_packet->reqBuf + sizeof(mode)));
-	printf("KB: fName %s\n", fName);
+	printf("KB: fName %s, mode = 0x%x\n", fName, mode);
 
-	retval = open(fName, mode); //0777);
+	if (!strcmp(fName, "/KFAT0/nvm/num/87_19"))
+		lastOpen = 1;
+
+	if(mode & FM_CREATE)
+		flags |= O_CREAT;
+	if(mode & FM_WRITE)
+		flags |= O_RDWR;
+	if(mode & FM_TRUNCATE)
+		flags |= O_TRUNC;
+	if(mode & FM_APPEND)
+		flags |= O_APPEND;
+#if 0
+	else if(mode & FM_NOSHARE)
+		flags |= O_RDWR;
+	else if(mode & FM_DIRECTIO)
+		flags |= O_RDWR;
+	else if(mode & FM_CONCRETE_WRITE)
+		flags |= O_RDWR;
+	else if(mode & FM_NOUPDATE_TIME)
+		flags |= O_RDWR;
+#endif
+	retval = open(fName, flags); //0777);
 
 	tx_packet->funcRet = retval; //-1; //retval;
 	tx_packet->errorVal = (retval < 0 ? errno : 0); //-1; //retval;
@@ -100,7 +128,7 @@ int FmOpenFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet); //0x08; //0x100;
 	tx_packet->respBuf = NULL;
 
-	printf("KB: Leaving FmOpenFile fd = %d\n", retval);
+//	printf("KB: Leaving FmOpenFile fd = %d\n", retval);
 	return 0;
 }
 
@@ -120,7 +148,15 @@ int FmCloseFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet);
 	tx_packet->respBuf = NULL;
 
-	printf("KB: Leaving FmCloseFile fd = %d\n", fd);
+//	printf("KB: Leaving FmCloseFile fd = %d\n", fd);
+	if (lastOpen)
+	{
+		lastFile = 1;
+		lastOpen = 0;
+	}
+	else
+		lastFile = 0;
+
 	return 0;
 }
 
@@ -165,13 +201,13 @@ int FmReadFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 
 	memcpy(readBuf, &numRead, sizeof(numRead));
 
-	tx_packet->errorVal = (numRead < 0 ? errno : 0); //0; //retval;
+	tx_packet->errorVal = ((int)numRead < 0 ? errno : 0); //0; //retval;
 	tx_packet->funcRet = numRead; //0; //retval;
 
 	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet) + numRead; //0x08; //0x100;
 	tx_packet->respBuf = readBuf;
 
-	printf("KB: Leaving FmReadFile\n");
+//	printf("KB: Leaving FmReadFile\n");
 	return 0;
 }
 
@@ -190,13 +226,13 @@ int FmWriteFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 
 	numWrite = write(fd, writeBuf, size);
 
-	tx_packet->errorVal = (numWrite < 0 ? errno : 0); //0; //retval;
+	tx_packet->errorVal = ((int) numWrite < 0 ? errno : 0); //0; //retval;
 	tx_packet->funcRet = numWrite; //0; //retval;
 
 	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet); //0x08; //0x100;
 	tx_packet->respBuf = NULL;
 
-	printf("KB: Leaving FmWriteFile\n");
+//	printf("KB: Leaving FmWriteFile\n");
 	return 0;
 }
 
@@ -267,7 +303,7 @@ int FmTellFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 
 int FmRemoveFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 {
-	printf("KB: Inside FmRemoveFile\n");
+	//printf("KB: Inside FmRemoveFile\n");
 	int retval = 0;
 	char *fName;
 
@@ -297,9 +333,22 @@ int FmMoveFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 	return 0;
 }
 
+/*
+ * FIXME: Put proper timestamp in FileAttribute structure
+ */
+FmFileAttribute *fAttr;
+TmDateTime fmTime = {
+		.year = 2011,
+		.month = 12,
+		.day = 29,
+		.hour = 10,
+		.minute = 45,
+		.second = 45,
+};
+
 int FmGetFileAttrFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 {
-	printf("KB: Inside FmGetFileAttrFile\n");
+//	printf("KB: Inside FmGetFileAttrFile\n");
 	int retval = 0;
 	struct stat sb;
 	char *fName;
@@ -307,17 +356,75 @@ int FmGetFileAttrFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 	fName = (char *)malloc(sizeof(*mochaRoot) + strlen(rx_packet->reqBuf));
 	strcpy(fName, mochaRoot);
 	strcat(fName, (const char *)(rx_packet->reqBuf));
-	printf("KB: fName %s\n", fName);
+//	printf("KB: fName %s\n", fName);
 
 	retval = stat(fName, &sb);
 
-	tx_packet->funcRet = 0; //retval; //0;
-	tx_packet->errorVal = 0; //(retval < 0 ? errno : 0); // ENOENT; retval; //0;
+	fAttr = (FmFileAttribute *)malloc(sizeof(FmFileAttribute));
 
-	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet); //0x08; //0x100;
-	tx_packet->respBuf = NULL;
+	tx_packet->funcRet = retval; //(retval < 0 ? 0 : 1); //0;
+	tx_packet->errorVal = (retval < 0 ? errno : 0); // ENOENT; retval; //0;
+	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet) + sizeof(FmFileAttribute); //0x08; //0x100;
 
-	printf("KB: Leaving FmGetFileAttrFile\n");
+#if 1
+	if(retval >= 0)
+	{
+#if 1
+		fAttr->oldFileSize = sb.st_size;
+		fAttr->startAddr = 0;
+		fAttr->attribute = sb.st_mode;
+		fAttr->iVol = sb.st_dev;
+		fAttr->dt.year = fmTime.year;
+		fAttr->dt.month = fmTime.month;
+		fAttr->dt.day = fmTime.day;
+		fAttr->dt.hour = fmTime.hour;
+		fAttr->dt.minute = fmTime.minute;
+		fAttr->dt.second = fmTime.second;
+		fAttr->oldAllocatedSize = sb.st_size;
+		fAttr->stModifiedDataTime.year = fmTime.year;
+		fAttr->stModifiedDataTime.month = fmTime.month;
+		fAttr->stModifiedDataTime.day = fmTime.day;
+		fAttr->stModifiedDataTime.hour = fmTime.hour;
+		fAttr->stModifiedDataTime.minute = fmTime.minute;
+		fAttr->stModifiedDataTime.second = fmTime.second;
+		fAttr->u64EntryUniqID = sb.st_ino;
+		fAttr->uReservedField = 0;
+#endif
+		fAttr->fileSize = sb.st_size;
+		fAttr->allocatedSize = sb.st_size;
+	}
+	else
+	{
+#if 1
+		fAttr->oldFileSize = 0;
+		fAttr->startAddr = 0;
+		fAttr->attribute = 0;
+		fAttr->iVol = 0;
+		fAttr->dt.year = fmTime.year;
+		fAttr->dt.month = fmTime.month;
+		fAttr->dt.day = fmTime.day;
+		fAttr->dt.hour = fmTime.hour;
+		fAttr->dt.minute = fmTime.minute;
+		fAttr->dt.second = fmTime.second;
+		fAttr->oldAllocatedSize = 0;
+		fAttr->stModifiedDataTime.year = fmTime.year;
+		fAttr->stModifiedDataTime.month = fmTime.month;
+		fAttr->stModifiedDataTime.day = fmTime.day;
+		fAttr->stModifiedDataTime.hour = fmTime.hour;
+		fAttr->stModifiedDataTime.minute = fmTime.minute;
+		fAttr->stModifiedDataTime.second = fmTime.second;
+		fAttr->u64EntryUniqID = 0;
+		fAttr->uReservedField = 0;
+#endif
+		fAttr->fileSize = 0;
+		fAttr->allocatedSize = 0;
+	}
+#endif
+
+	//memcpy(tx_packet->respBuf, &fAttr, sizeof(FmFileAttribute));
+	tx_packet->respBuf = fAttr;
+
+//	printf("KB: Leaving FmGetFileAttrFile\n");
 	return 0;
 }
 
@@ -332,18 +439,70 @@ int FmFGetFileAttrFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet
 
 	retval = fstat(fd, &sb);
 
-	tx_packet->errorVal = (retval < 0 ? errno : 0); //retval; //-1;
-	tx_packet->funcRet = retval; //-1;
+	fAttr = malloc(sizeof(FmFileAttribute));
 
-	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet);
-	tx_packet->respBuf = NULL;
+	tx_packet->funcRet = (retval < 0 ? 0 : 1); //0;
+	tx_packet->errorVal = (retval < 0 ? errno : 0); // ENOENT; retval; //0;
+	tx_packet->header->packetLen = sizeof(tx_packet->errorVal) + sizeof(tx_packet->funcRet) + sizeof(FmFileAttribute); //0x08; //0x100;
+
+	if(retval >= 0)
+	{
+		fAttr->oldFileSize = sb.st_size;
+		fAttr->startAddr = 0;
+		fAttr->attribute = sb.st_mode;
+		fAttr->iVol = sb.st_dev;
+		fAttr->dt.year = fmTime.year;
+		fAttr->dt.month = fmTime.month;
+		fAttr->dt.day = fmTime.day;
+		fAttr->dt.hour = fmTime.hour;
+		fAttr->dt.minute = fmTime.minute;
+		fAttr->dt.second = fmTime.second;
+		fAttr->oldAllocatedSize = sb.st_size;
+		fAttr->stModifiedDataTime.year = fmTime.year;
+		fAttr->stModifiedDataTime.month = fmTime.month;
+		fAttr->stModifiedDataTime.day = fmTime.day;
+		fAttr->stModifiedDataTime.hour = fmTime.hour;
+		fAttr->stModifiedDataTime.minute = fmTime.minute;
+		fAttr->stModifiedDataTime.second = fmTime.second;
+		fAttr->u64EntryUniqID = sb.st_ino;
+		fAttr->uReservedField = 0;
+		fAttr->fileSize = sb.st_size;
+		fAttr->allocatedSize = sb.st_size;
+	}
+	else
+	{
+		fAttr->oldFileSize = 0;
+		fAttr->startAddr = 0;
+		fAttr->attribute = 0;
+		fAttr->iVol = 0;
+		fAttr->dt.year = fmTime.year;
+		fAttr->dt.month = fmTime.month;
+		fAttr->dt.day = fmTime.day;
+		fAttr->dt.hour = fmTime.hour;
+		fAttr->dt.minute = fmTime.minute;
+		fAttr->dt.second = fmTime.second;
+		fAttr->oldAllocatedSize = 0;
+		fAttr->stModifiedDataTime.year = fmTime.year;
+		fAttr->stModifiedDataTime.month = fmTime.month;
+		fAttr->stModifiedDataTime.day = fmTime.day;
+		fAttr->stModifiedDataTime.hour = fmTime.hour;
+		fAttr->stModifiedDataTime.minute = fmTime.minute;
+		fAttr->stModifiedDataTime.second = fmTime.second;
+		fAttr->u64EntryUniqID = 0;
+		fAttr->uReservedField = 0;
+		fAttr->fileSize = 0;
+		fAttr->allocatedSize = 0;
+	}
+
+	//memcpy(tx_packet->respBuf, &fAttr, sizeof(FmFileAttribute));
+	tx_packet->respBuf = fAttr;
 
 	return retval;
 }
 
 int FmSetFileAttrFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 {
-	printf("KB: Inside FmSetFileAttrFile\n");
+	printf("KB: Inside FmSetFileAttrFile - TBD\n");
 
 	printf("KB: Leaving FmSetFileAttrFile\n");
 	return 0;
@@ -351,7 +510,7 @@ int FmSetFileAttrFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 
 int FmTruncateFile(struct fmRequest *rx_packet, struct fmResponse *tx_packet)
 {
-	printf("KB: Inside FmTruncateFile\n");
+	printf("KB: Inside FmTruncateFile - TBD\n");
 
 	printf("KB: Leaving FmTruncateFile\n");
 	return 0;
@@ -486,8 +645,10 @@ int get_request_packet(void *data, struct fmRequest *rx_packet)
 
 }
 
-void modem_response_fm(struct ipc_client *client, struct modem_io *resp)
+int modem_response_fm(struct ipc_client *client, struct modem_io *resp)
 {
+	//printf("Entering modem_response_fm\n");
+
 	int retval;
 	struct fmRequest rx_packet;
 	struct fmResponse tx_packet;
@@ -529,10 +690,17 @@ void modem_response_fm(struct ipc_client *client, struct modem_io *resp)
 
 	_ipc_client_send(client, &request);
 
-    if(tx_packet.respBuf != NULL)
+	if(tx_packet.respBuf != NULL)
         free(tx_packet.respBuf);
 
     if(frame != NULL)
         free(frame);
 
+    if(!lastOpen && lastFile)
+    {
+    	lastFile = 0;
+    	return 1;
+    }
+    else
+    	return 0;
 }

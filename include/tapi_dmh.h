@@ -1,7 +1,7 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2011-2012 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2012 KB <kbjetdroid@gmail.com>
  *
  * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
@@ -20,31 +20,19 @@
  *
  */
 
-#ifndef __IPC_H__
-#define __IPC_H__
+#ifndef __TAPI_DMH_H__
+#define __TAPI_DMH_H__
 
-struct ipcPacketHeader {
-	unsigned char reserved; //probably dummy
-	unsigned char ipcPacketType;
-} __attribute__((__packed__));
+#if defined(DEVICE_JET)
+#include "device/jet/tapi_dmh.h"
+#elif defined(DEVICE_WAVE)
+#include "device/wave/tapi_dmh.h"
+#endif
 
-struct ipcNvPacket {
-	struct ipcPacketHeader header;
-	unsigned int size;
-} __attribute__((__packed__));
+/**
+ * All the TAPI DMH context structures generic to all Mocha devices will be defined here
+ */
 
-struct ipcPMICPacket {
-	struct ipcPacketHeader header;
-	unsigned int unk1;
-	unsigned int unk2;
-	unsigned int value;
-} __attribute__((__packed__));
-
-struct ipcRequest {
-	struct ipcPacketHeader header;
-	unsigned char *respBuf;
-} __attribute__((__packed__));
-
-void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
+void tapi_dmh_handler(unsigned short tapiDmhType, unsigned int tapiDmhLength, char *tapiDmhData);
 
 #endif

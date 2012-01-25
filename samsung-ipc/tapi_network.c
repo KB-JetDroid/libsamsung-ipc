@@ -1,7 +1,7 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2011-2012 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2012 KB <kbjetdroid@gmail.com>
  *
  * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
@@ -17,34 +17,31 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with libsamsung-ipc.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <radio.h>
+#include <tapi_packet.h>
+#include <tapi_network.h>
+
+/*
+ * All the TAPI Network handling will be done here
  *
  */
 
-#ifndef __IPC_H__
-#define __IPC_H__
+void tapi_network_handler(unsigned short tapiNetType, unsigned int tapiNetLength, char *tapiNetData)
+{
+	struct tapiRequest tx_packet;
 
-struct ipcPacketHeader {
-	unsigned char reserved; //probably dummy
-	unsigned char ipcPacketType;
-} __attribute__((__packed__));
+	struct modem_io request;
+    unsigned char *frame;
+    unsigned char *payload;
+    int frame_length;
 
-struct ipcNvPacket {
-	struct ipcPacketHeader header;
-	unsigned int size;
-} __attribute__((__packed__));
-
-struct ipcPMICPacket {
-	struct ipcPacketHeader header;
-	unsigned int unk1;
-	unsigned int unk2;
-	unsigned int value;
-} __attribute__((__packed__));
-
-struct ipcRequest {
-	struct ipcPacketHeader header;
-	unsigned char *respBuf;
-} __attribute__((__packed__));
-
-void modem_response_ipc(struct ipc_client *client, struct modem_io *resp);
-
-#endif
+    switch(tapiNetType)
+    {
+    case 0x01:
+    	break;
+    default:
+    	break;
+    }
+}
