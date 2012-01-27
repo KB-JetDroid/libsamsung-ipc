@@ -1,7 +1,7 @@
 /**
  * This file is part of libsamsung-ipc.
  *
- * Copyright (C) 2012 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2012 Dominik Marszk <dmarszk@gmail.com>
  *
  * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
@@ -26,5 +26,9 @@
 /**
  * All the TAPI call context structures specific to Wave will be defined here
  */
-
+enum TAPI_CALL_TYPE
+{
+	TAPI_CALL_APIREQ 	= 0x0,
+};
+ 
 #endif
